@@ -21,6 +21,7 @@ export default function HomeScreen() {
         "id": "all",
         "name": "All"
       });
+      setSelectedGenre( "all");
       setGenre(genreResponse.data.genres);
     } catch (error) {
       throw error;

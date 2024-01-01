@@ -1,13 +1,38 @@
-import { Text, View, Image, ScrollView } from "react-native";
-import React, { useEffect, useState } from "react";
+import {
+  Text,
+  View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import React, { useEffect, useState, useRef } from "react";
 import { movieapikey } from "../utils/apikey";
 import LoadingComponent from "./loadingData";
+import { AntDesign } from "@expo/vector-icons";
+import NoMovieFound from './noMovieFound';
 
 const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
   const [movies, setMovies] = useState([]);
   const [onGoingYear, setOngoingYear] = useState(movieYear);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false) 
+  const ITEM_HEIGHT = 20;
+
+  const scrollViewRef = useRef(null);
+
+  const scrollToMiddle = () => {
+    if (scrollViewRef.current) {
+      const middleIndex = movies.length / 2; 
+      const yOffset = middleIndex * ITEM_HEIGHT;
+
+      scrollViewRef.current.scrollTo({
+        y: yOffset,
+        animated: true,
+      });
+    }
+  };
 
   useEffect(() => {
     if (genre !== selectedGenre || searchQuery) {
@@ -15,14 +40,14 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
       setMovies([]);
       setIsLoading(true);
       if (searchQuery) {
-                searchMovies(searchQuery);
+        searchMovies(searchQuery);
       } else {
-                fetchData(movieYear, genre);
+        fetchData(movieYear, genre);
       }
-    } 
+    }
     if (movieList && movieList.length > 0 && !selectedGenre && !searchQuery) {
       setMovies(movieList);
-    } 
+    }
   }, [movieList, movieYear, genre, selectedGenre, searchQuery]);
 
   const rows = movies.reduce((acc, _, index, array) => {
@@ -42,21 +67,24 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
           event.nativeEvent.layoutMeasurement.height -
           20
     ) {
-       onEndReached();
+      onEndReached();
     } else if (offsetY <= 0) {
-       onScrollToTop();
+      onScrollToTop();
     }
   };
 
   const onEndReached = () => {
+    setIsLoading(true);
     const previousYear = parseInt(onGoingYear) - 1;
     if (selectedGenre) {
       fetchData(previousYear, selectedGenre).then(() => {
         setOngoingYear(previousYear);
+        scrollToMiddle();
       });
     } else {
       fetchData(previousYear).then(() => {
         setOngoingYear(previousYear);
+        scrollToMiddle();
       });
     }
   };
@@ -67,7 +95,6 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
     const genreData = await genreResponse.json();
     return new Map(genreData.genres.map((genre) => [genre.id, genre.name]));
   };
-  
 
   const fetchData = async (year, genre) => {
     const genresMap = await fetchGenresMap();
@@ -80,6 +107,10 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
     try {
       const response = await fetch(apiUrl);
       const movieResponse = await response.json();
+      if(!movieResponse){
+        setNotFound(true)
+      }
+      setNotFound(false)
       const moviesWithGenres = movieResponse.results.map((movie) => ({
         ...movie,
         genres: movie.genre_ids.map((genreId) => genresMap.get(genreId)),
@@ -102,7 +133,7 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
         `https://api.themoviedb.org/3/search/movie?api_key=${movieapikey}&sort_by=popularity.desc&query=${query}&primary_release_year=${onGoingYear}&page=1&vote_count.gte=100`
       );
       const movieResponse = await response.json();
-      const moviesWithGenres = movieResponse.results.map((movie) => ({
+            const moviesWithGenres = movieResponse.results.map((movie) => ({
         ...movie,
         genres: movie.genre_ids.map((genreId) => genresMap.get(genreId)),
       }));
@@ -114,20 +145,39 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
   };
 
   const onScrollToTop = () => {
+    setIsLoading(true);
     const nextYear = parseInt(onGoingYear) + 1;
     const currentYear = new Date().getFullYear();
     if (parseInt(onGoingYear) < currentYear) {
       if (selectedGenre) {
         fetchData(nextYear, selectedGenre).then(() => {
           setOngoingYear(nextYear);
+          scrollToMiddle();
         });
       } else {
         fetchData(nextYear, selectedGenre).then(() => {
           setOngoingYear(nextYear);
+          scrollToMiddle();
         });
       }
     }
   };
+
+  const ScrollToTopButton = ({ onPress }) => (
+    <TouchableOpacity style={styles.scrollToTopButton} onPress={onPress}>
+      <AntDesign name="up" size={24} color="white" />
+    </TouchableOpacity>
+  );
+
+  const scrollToTop = () => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
+
+  const previousYearMovie = () => {
+    onEndReached()
+  }
 
   return (
     <>
@@ -142,12 +192,14 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
         {onGoingYear}
       </Text>
       <ScrollView
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
         {rows.length === 0 ? (
-          <LoadingComponent isLoading={isLoading} />
+          isLoading ? 
+          <LoadingComponent isLoading={isLoading} /> : <NoMovieFound onPressBack={previousYearMovie}/>
         ) : (
           rows.map((row, rowIndex) => (
             <View key={rowIndex}>
@@ -156,9 +208,7 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
                   <View
                     key={cardIndex}
                     style={{
-                     // display: "flex",
                       margin: 5,
-                      // height: 280,
                     }}
                   >
                     <Image
@@ -229,8 +279,27 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
           ))
         )}
       </ScrollView>
+      <ScrollToTopButton onPress={scrollToTop} />
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingVertical: 16,
+  },
+  scrollToTopButton: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    backgroundColor: "indianred", 
+    borderRadius: 30,
+    padding: 10,
+    zIndex: 1,
+  },
+});
 
 export default movieCard;
