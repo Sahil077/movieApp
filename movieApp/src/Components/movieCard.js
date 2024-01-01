@@ -13,16 +13,16 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
     if (genre !== selectedGenre || searchQuery) {
       setSelectedGenre(genre);
       setMovies([]);
+      setIsLoading(true);
       if (searchQuery) {
-        searchMovies(searchQuery);
+                searchMovies(searchQuery);
       } else {
-        fetchData(movieYear, genre);
+                fetchData(movieYear, genre);
       }
-    } else if (movieList && movieList.length > 0) {
+    } 
+    if (movieList && movieList.length > 0 && !selectedGenre && !searchQuery) {
       setMovies(movieList);
-    } else {
-      fetchData(movieYear, null);
-    }
+    } 
   }, [movieList, movieYear, genre, selectedGenre, searchQuery]);
 
   const rows = movies.reduce((acc, _, index, array) => {
@@ -95,10 +95,11 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
 
 
   const searchMovies = async (query) => {
+    setIsLoading(true);
     const genresMap = await fetchGenresMap();
     try {
       const response = await fetch(
-        `https://api.themoviedb.org/3/search/movie?api_key=${movieapikey}&sort_by=popularity.desc&query=${query}&page=1&vote_count.gte=100`
+        `https://api.themoviedb.org/3/search/movie?api_key=${movieapikey}&sort_by=popularity.desc&query=${query}&primary_release_year=${onGoingYear}&page=1&vote_count.gte=100`
       );
       const movieResponse = await response.json();
       const moviesWithGenres = movieResponse.results.map((movie) => ({
@@ -106,6 +107,7 @@ const movieCard = ({ movieList, movieYear, genre, searchQuery }) => {
         genres: movie.genre_ids.map((genreId) => genresMap.get(genreId)),
       }));
       setMovies(moviesWithGenres);
+      setIsLoading(false);
     } catch (error) {
       throw error;
     }
