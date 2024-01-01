@@ -2,6 +2,8 @@
 
 Welcome to MYC (Movie You Choose) App! This guide will help you install and run the app on your system.
 
+![App_preview](https://github.com/Sahil077/movieApp/assets/61814218/9581c601-305c-4458-b5e5-4f90e25c907d)
+
 ## Pre-Requirements
 
 1. **Node.js:** Ensure that Node.js is installed on your system. You can download it from [here](https://nodejs.org/).
