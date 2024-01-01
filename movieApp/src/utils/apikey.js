@@ -1,0 +1,1 @@
+export const movieapikey = "YOUR_API_KEY"; // Add your API Key from themoviedb
