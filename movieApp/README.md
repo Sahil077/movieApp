@@ -25,6 +25,7 @@ yarn expo
 
 It will show QR Code, you can scan the QR on your expo app in your phone.
 NOTE:- Make sure your system and your phone both are using the same network.
+NOTE: - As Current is now 2024, so as per the requirement. We need to add a check that movie list to be show till current year. But now it goes till 2024, with 0 movies. So, added a check if no movies are there user can move to the previous year 
 
 After scaning the QR, you will be able to view your app.
 
